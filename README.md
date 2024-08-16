@@ -166,7 +166,7 @@ $ iptables -A OUTPUT -d 127.0.0.1 -j ACCEPT
 ### 9. Add a rule to log all the pings requests that are performed to the virtual machine.
 - **a.** Check the number of packets that have denied and logged
 ```bash
-$ iptables -A INPUT -p icmp --icmp-type 8 -j LOG
+iptables -A INPUT -p icmp --icmp-type 8 -j LOG
 ```
 - **b.** After the verification of the logging eliminate the rule
 ```bash
@@ -177,3 +177,43 @@ $ iptables -D INPUT 4
 ```bash
 $ iptables  -R INPUT 5 -p tcp --syn --dport ssh -m connlimit --connlimit-above 2 -j REJECT
 ```
+
+
+# For Docker network Helper
+
+### Eliminar regra que rejeita toda entrada para cham DOCKER-INGRESS, definir esta regra em ultimo lugar
+```bash
+sudo iptables -t filter -D DOCKER-INGRESS -j RETURN
+```
+
+### aceitar chamada para porta 8888, somente a partir de container docker
+```bash
+sudo iptables -A DOCKER-INGRESS -p tcp -m tcp -i docker_gwbridge --dport 8888 -j ACCEPT
+```
+
+### aceitar chamada de exterior para porta 8888
+```bash
+sudo iptables -A DOCKER-INGRESS -p tcp -m tcp --dport 8888 -j ACCEPT
+```
+```bash
+sudo iptables -A DOCKER-INGRESS -p tcp -m tcp --sport 8888 -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+```
+
+### rejeitar todas outrs chamadas a partir desta regra
+```bash
+sudo iptables -A DOCKER-INGRESS -j RETURN
+```
+
+### LOGs para monitorr regra na porta 8888
+```bash
+sudo iptables -A DOCKER-INGRESS -p tcp -m tcp --dport 8888 -j LOG --log-prefix "HTTP_TCP_8888_LOG: "
+```
+
+### Save and Restore rules saved infile
+```bash
+sudo iptables-save > /opt/iptables.v4.1
+```
+```bash
+sudo iptables-restore < /opt/iptables.v4.1
+```
+
